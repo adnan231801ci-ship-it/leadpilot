@@ -1,0 +1,17 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+.streamlit/secrets.toml
+
+.env
+.env.*
+
+data/leads.csv
+
+app_backup_working.py
+app_before_login.py
+app_day3_backup.py
+app_day4_backup.py
+src/scoring_day5_backup.py
