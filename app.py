@@ -20,7 +20,7 @@ PRO_PLAN_PRICE = 399
 # CURRENT SUBSCRIPTION
 # ============================================================
 
-CURRENT_PLAN = "Free"
+CURRENT_PLAN = "Pro"
 
 from src.scoring import (
     calculate_lead_score,
@@ -1740,142 +1740,161 @@ elif page == "👥 Leads":
     st.subheader("➕ Add New Lead")
 
     # ========================================================
-# FREE PLAN LIMIT
-# ========================================================
+    # ADD NEW LEAD
+    # ========================================================
 
-if CURRENT_PLAN == "Free" and len(df) >= FREE_LEAD_LIMIT:
+    st.divider()
+    st.subheader("➕ Add New Lead")
 
-    st.warning(
-        f"🔒 Your Free plan allows up to "
-        f"{FREE_LEAD_LIMIT} leads."
-    )
+    # ========================================================
+    # FREE PLAN LIMIT
+    # ========================================================
 
-    st.info(
-        "🚀 Upgrade to LeadPilot Pro for unlimited leads."
-    )
+    if CURRENT_PLAN == "Free" and len(df) >= FREE_LEAD_LIMIT:
 
-    st.stop()
-
-    with st.form("add_lead_form"):
-
-        add_col1, add_col2 = st.columns(2)
-
-        with add_col1:
-
-            new_name = st.text_input(
-                "👤 Lead Name"
-            )
-
-            new_phone = st.text_input(
-                "📱 WhatsApp Number",
-                placeholder="Example: 919876543210",
-            )
-
-            new_age = st.number_input(
-                "🎂 Age",
-                min_value=1,
-                max_value=100,
-                value=25,
-            )
-
-            new_qualification = st.text_input(
-                "🎓 Qualification"
-            )
-
-            new_source = st.selectbox(
-                "📱 Lead Source",
-                [
-                    "Instagram",
-                    "YouTube",
-                    "WhatsApp",
-                    "Facebook",
-                    "Referral",
-                    "Other",
-                ],
-            )
-
-        with add_col2:
-
-            new_number_saved = st.selectbox(
-                "📱 Number Saved?",
-                ["No", "Yes"],
-            )
-
-            new_zoom_invited = st.selectbox(
-                "📅 Zoom Invited?",
-                ["No", "Yes"],
-            )
-
-            new_zoom_attended = st.selectbox(
-                "🎥 Zoom Attended?",
-                ["No", "Yes"],
-            )
-
-            new_purchase = st.selectbox(
-                "💰 Purchased?",
-                ["No", "Yes"],
-            )
-
-        submitted = st.form_submit_button(
-            "💾 Save New Lead",
-            use_container_width=True,
+        st.warning(
+            f"🔒 Your Free plan allows up to "
+            f"{FREE_LEAD_LIMIT} leads."
         )
 
-    if submitted:
+        st.info(
+            "🚀 Upgrade to LeadPilot Pro or Premium Pro "
+            "for unlimited leads."
+        )
 
-        if not new_name.strip():
+    else:
 
-            st.error(
-                "⚠️ Please enter the lead name."
+        # ====================================================
+        # ADD NEW LEAD FORM
+        # ====================================================
+
+        with st.form("add_lead_form"):
+
+            add_col1, add_col2 = st.columns(2)
+
+            with add_col1:
+
+                new_name = st.text_input(
+                    "👤 Lead Name",
+                    placeholder="Enter lead name",
+                )
+
+                new_phone = st.text_input(
+                    "📱 WhatsApp Number",
+                    placeholder="Example: 919876543210",
+                )
+
+                new_age = st.number_input(
+                    "🎂 Age",
+                    min_value=1,
+                    max_value=100,
+                    value=25,
+                )
+
+                new_qualification = st.text_input(
+                    "🎓 Qualification",
+                    placeholder="Example: Graduate",
+                )
+
+                new_source = st.selectbox(
+                    "📱 Lead Source",
+                    [
+                        "Instagram",
+                        "YouTube",
+                        "WhatsApp",
+                        "Facebook",
+                        "Referral",
+                        "Other",
+                    ],
+                )
+
+            with add_col2:
+
+                new_number_saved = st.selectbox(
+                    "📱 Number Saved?",
+                    ["No", "Yes"],
+                )
+
+                new_zoom_invited = st.selectbox(
+                    "📅 Zoom Invited?",
+                    ["No", "Yes"],
+                )
+
+                new_zoom_attended = st.selectbox(
+                    "🎥 Zoom Attended?",
+                    ["No", "Yes"],
+                )
+
+                new_purchase = st.selectbox(
+                    "💰 Purchased?",
+                    ["No", "Yes"],
+                )
+
+            submitted = st.form_submit_button(
+                "💾 Save New Lead",
+                use_container_width=True,
             )
 
-        else:
+        # ====================================================
+        # SAVE NEW LEAD
+        # ====================================================
 
-            new_lead = {
-                "lead_id": make_unique_lead_id(df),
-                "name": new_name.strip(),
-                "phone": new_phone.strip(),
-                "age": new_age,
-                "qualification": new_qualification.strip(),
-                "source": new_source,
-                "number_saved": new_number_saved,
-                "zoom_invited": new_zoom_invited,
-                "zoom_attended": new_zoom_attended,
-                "purchase": new_purchase,
-                "last_interaction": str(
-                    pd.Timestamp.today().date()
-                ),
-                "follow_up_date": "",
-                "follow_up_time": "",
-                "follow_up_status": "",
-                "follow_up_notes": "",
-                "follow_up_outcome": "",
-                "outcome_notes": "",
-                "last_contacted": "",
-            }
+        if submitted:
 
-            df = pd.concat(
-                [
-                    df,
-                    pd.DataFrame([new_lead]),
-                ],
-                ignore_index=True,
-            )
+            if not new_name.strip():
 
-            df = calculate_intelligence(df)
-            save_data(df)
+                st.error(
+                    "⚠️ Please enter the lead name."
+                )
 
-            st.success(
-                f"✅ {new_name} added successfully!"
-            )
+            else:
 
-            st.rerun()
+                new_lead = {
+                    "lead_id": make_unique_lead_id(df),
+                    "name": new_name.strip(),
+                    "phone": new_phone.strip(),
+                    "age": new_age,
+                    "qualification": new_qualification.strip(),
+                    "source": new_source,
+                    "number_saved": new_number_saved,
+                    "zoom_invited": new_zoom_invited,
+                    "zoom_attended": new_zoom_attended,
+                    "purchase": new_purchase,
+                    "last_interaction": str(
+                        pd.Timestamp.today().date()
+                    ),
+                    "follow_up_date": "",
+                    "follow_up_time": "",
+                    "follow_up_status": "",
+                    "follow_up_notes": "",
+                    "follow_up_outcome": "",
+                    "outcome_notes": "",
+                    "last_contacted": "",
+                }
+
+                df = pd.concat(
+                    [
+                        df,
+                        pd.DataFrame([new_lead]),
+                    ],
+                    ignore_index=True,
+                )
+
+                df = calculate_intelligence(df)
+
+                save_data(df)
+
+                st.success(
+                    f"✅ {new_name} added successfully!"
+                )
+
+                st.rerun()
 
 
     # ========================================================
     # EDIT LEAD
     # ========================================================
-
+ 
     st.divider()
     st.subheader("✏️ Edit Lead")
 
@@ -2038,7 +2057,7 @@ if CURRENT_PLAN == "Free" and len(df) >= FREE_LEAD_LIMIT:
                     df.loc[
                         edit_index,
                         "age",
-                    ] = edit_age
+                    ] = str(edit_age)
 
                     df.loc[
                         edit_index,
@@ -3279,6 +3298,23 @@ elif page == "💳 Plans":
 
     free_col, pro_col = st.columns(2)
 
+      # ========================================================
+    # PRICING PLANS
+    # ========================================================
+
+    st.divider()
+    st.subheader("💳 Choose Your LeadPilot Plan")
+
+    st.caption(
+        "Start free and upgrade whenever you need more power."
+    )
+
+    # --------------------------------------------------------
+    # PLAN COLUMNS
+    # --------------------------------------------------------
+
+    free_col, pro_col, premium_col = st.columns(3)
+
     # ========================================================
     # FREE PLAN
     # ========================================================
@@ -3289,7 +3325,9 @@ elif page == "💳 Plans":
 
         st.write("### ₹0 / month")
 
-        st.write("Perfect for getting started.")
+        st.write(
+            "Perfect for getting started."
+        )
 
         st.markdown(
             """
@@ -3304,12 +3342,22 @@ elif page == "💳 Plans":
             ✅ Search & filtering
 
             ✅ Lead management
+
+            ✅ Basic AI recommendations
             """
         )
 
-        st.info(
-            "Your current plan"
-        )
+        if CURRENT_PLAN == "Free":
+
+            st.success(
+                "✓ Your current plan"
+            )
+
+        else:
+
+            st.info(
+                "Free plan"
+            )
 
     # ========================================================
     # PRO PLAN
@@ -3319,7 +3367,11 @@ elif page == "💳 Plans":
 
         st.subheader("🚀 LeadPilot Pro")
 
-        st.write("### ₹399 / month")
+        st.write("### ₹299 / month")
+
+        st.write(
+            "**₹1,999 / year**"
+        )
 
         st.write(
             "For entrepreneurs who want to convert more leads."
@@ -3329,11 +3381,11 @@ elif page == "💳 Plans":
             """
             ✅ **Unlimited leads**
 
+            ✅ Advanced lead scoring
+
             ✅ Full AI lead intelligence
 
             ✅ Smart Follow-Ups
-
-            ✅ WhatsApp tools
 
             ✅ Advanced analytics
 
@@ -3343,17 +3395,93 @@ elif page == "💳 Plans":
 
             ✅ Full Action Center
 
+            ✅ WhatsApp tools
+
             ✅ Future Pro features
             """
         )
 
-        if st.button(
-            "🚀 Upgrade to Pro — ₹399/month",
-            use_container_width=True,
-            key="upgrade_pro_button",
-        ):
+        if CURRENT_PLAN == "Pro":
 
-            st.info(
-                "💳 Payment integration coming next."
+            st.success(
+                "✓ Your current plan"
             )
+
+        else:
+
+            if st.button(
+                "🚀 Upgrade to Pro",
+                use_container_width=True,
+                key="upgrade_pro_button",
+            ):
+
+                st.info(
+                    "💳 Pro subscription — ₹299/month or ₹1,999/year"
+                )
+
+    # ========================================================
+    # PREMIUM PRO PLAN
+    # ========================================================
+
+    with premium_col:
+
+        st.subheader("💎 Premium Pro")
+
+        st.write("### ₹499 / month")
+
+        st.write(
+            "**₹3,999 / year**"
+        )
+
+        st.write(
+            "For serious entrepreneurs who want maximum growth."
+        )
+
+        st.markdown(
+            """
+            ✅ **Unlimited leads**
+
+            ✅ Everything in Pro
+
+            ✅ Advanced AI intelligence
+
+            ✅ Premium analytics
+
+            ✅ Advanced automation
+
+            ✅ Priority recommendations
+
+            ✅ Advanced Action Plans
+
+            ✅ Premium lead intelligence
+
+            ✅ WhatsApp automation*
+
+            ✅ Premium features
+
+            ✅ Priority feature access
+            """
+        )
+
+        if CURRENT_PLAN == "Premium Pro":
+
+            st.success(
+                "✓ Your current plan"
+            )
+
+        else:
+
+            if st.button(
+                "💎 Upgrade to Premium Pro",
+                use_container_width=True,
+                key="upgrade_premium_button",
+            ):
+
+                st.info(
+                    "💳 Premium Pro — ₹499/month or ₹3,999/year"
+                )
+
+        st.caption(
+            "*WhatsApp automation availability depends on the integration."
+        )
 
