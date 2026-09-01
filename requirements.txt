@@ -4,5 +4,5 @@ numpy
 requests
 pyyaml
 python-dotenv
-streamlit-authenticator
+streamlit-authenticator==0.4.2
 razorpay
