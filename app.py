@@ -1,10 +1,25 @@
 import streamlit as st
+import streamlit_authenticator as stauth
 import pandas as pd
 import requests
 from urllib.parse import quote
 from pathlib import Path
+from subscription import activate_subscription
+from src.legal_pages import (
+    show_privacy_policy,
+    show_terms,
+    show_refund_policy,
+    show_contact
+)
 
 from src.local_ai import generate_lead_recommendation
+
+import streamlit.components.v1 as components
+from src.razorpay_payment import (
+    create_order,
+    verify_payment,
+    RAZORPAY_KEY_ID
+)
 
 # ============================================================
 # SUBSCRIPTION CONFIG
@@ -20,8 +35,6 @@ PRO_PLAN_PRICE = 399
 # CURRENT SUBSCRIPTION
 # ============================================================
 
-CURRENT_PLAN = "Pro"
-
 from src.scoring import (
     calculate_lead_score,
     get_recommended_action,
@@ -34,8 +47,12 @@ from src.scoring import (
     get_lead_summary,
 )
 
-from auth import get_authenticator
+from auth import get_authenticator, save_credentials
 
+from password_reset import (
+    create_reset_token,
+    send_reset_email,
+)
 
 # ============================================================
 # PAGE CONFIG
@@ -424,23 +441,452 @@ p {
 # AUTHENTICATION
 # ============================================================
 
-authenticator = get_authenticator()
-authenticator.login(location="main")
+authenticator, credentials = get_authenticator()
 
-authentication_status = st.session_state.get("authentication_status")
+authentication_status = st.session_state.get(
+    "authentication_status"
+)
+
 name = st.session_state.get("name")
 username = st.session_state.get("username")
 
-if authentication_status is False:
-    st.error("❌ Username/password is incorrect.")
-    st.stop()
+# ============================================================
+# CURRENT USER PLAN
+# ============================================================
+
+CURRENT_PLAN = "Free"
+
+if username and username in credentials.get("usernames", {}):
+
+    CURRENT_PLAN = credentials["usernames"][username].get(
+        "plan",
+        "Free",
+    )
+
+# ============================================================
+# USER-SPECIFIC LEAD DATABASE
+# ============================================================
+
+if username:
+
+    safe_username = "".join(
+        character
+        for character in username
+        if character.isalnum() or character in ("_", "-")
+    )
+
+    DATA_PATH = Path(
+        f"data/leads_{safe_username}.csv"
+    )
+
+else:
+
+    DATA_PATH = Path(
+        "data/leads_guest.csv"
+    )
+
+DATA_PATH.parent.mkdir(
+    parents=True,
+    exist_ok=True,
+)    
+
+# ============================================================
+# LOGIN / REGISTRATION
+# ============================================================
 
 if authentication_status is None:
-    st.warning("🔐 Please enter your username and password.")
+
+    st.title("🚀 Welcome to LeadPilot")
+
+    login_tab, register_tab = st.tabs(
+        [
+            "🔐 Login",
+            "📝 Create Account",
+        ]
+    )
+
+          # ========================================================
+    # LOGIN
+    # ========================================================
+
+    with login_tab:
+
+        authenticator.login(
+            location="main"
+        )
+
+        st.divider()
+
+        st.subheader("🔑 Forgot Password?")
+
+        reset_username = st.text_input(
+            "Enter your username",
+            key="reset_username",
+        )
+
+        if st.button(
+            "📧 Send Reset Email",
+            key="send_reset_email",
+        ):
+
+            username = reset_username.strip()
+
+            if not username:
+
+                st.warning(
+                    "Please enter your username."
+                )
+
+            else:
+
+                user = credentials["usernames"].get(
+                    username
+                )
+
+                if not user:
+
+                    st.error(
+                        "❌ Username not found."
+                    )
+
+                else:
+
+                    email = user.get(
+                        "email",
+                        ""
+                    )
+
+                    if not email:
+
+                        st.error(
+                            "❌ No email is registered "
+                            "for this account."
+                        )
+
+                    else:
+
+                        token = create_reset_token(
+                            username
+                        )
+
+                        if not token:
+
+                            st.error(
+                                "❌ Could not create "
+                                "reset request."
+                            )
+
+                        else:
+
+                            email_sent = send_reset_email(
+                                email,
+                                username,
+                                token,
+                            )
+
+                            if email_sent is True:
+
+                                st.success(
+                                    "✅ Reset email sent! "
+                                    "Check your registered email."
+                                )
+
+                            elif email_sent:
+
+                                st.error(
+                                    f"❌ Resend error: {email_sent}"
+                                )
+
+                            else:
+
+                                st.error(
+                                    "❌ Could not send "
+                                    "the reset email."
+                                )
+
+                                st.subheader("🔑 Forgot Password?")
+
+        reset_username = st.text_input(
+            "Enter your username",
+            key="forgot_password_username",
+        )
+
+    if st.button(
+    "📧 Send Reset Email",
+    key="leadpilot_send_reset_email",
+        ):
+
+            username = reset_username.strip()
+
+            if not username:
+
+                st.warning(
+                    "Please enter your username."
+                )
+
+            else:
+
+                user = credentials["usernames"].get(
+                    username
+                )
+
+                if not user:
+
+                    st.error(
+                        "❌ Username not found."
+                    )
+
+                else:
+
+                    email = user.get(
+                        "email",
+                        ""
+                    )
+
+                    if not email:
+
+                        st.error(
+                            "❌ No email is registered "
+                            "for this account."
+                        )
+
+                    else:
+
+                        token = create_reset_token(
+                            username
+                        )
+
+                        if not token:
+
+                            st.error(
+                                "❌ Could not create "
+                                "reset request."
+                            )
+
+                        else:
+
+                            email_sent = send_reset_email(
+                                email,
+                                username,
+                                token,
+                            )
+
+                            if email_sent is True:
+
+                                st.success(
+                                    "✅ Reset email sent! "
+                                    "Check your registered email."
+                                )
+
+                            elif email_sent:
+
+                                st.error(
+                                    f"❌ Resend error: {email_sent}"
+                                )
+
+                            else:
+
+                                st.error(
+                                    "❌ Could not send "
+                                    "the reset email."
+                                )
+                            
+    # ========================================================
+    # REGISTRATION
+    # ========================================================
+
+    with register_tab:
+
+        # YOUR EXISTING REGISTRATION CODE GOES HERE
+
+        st.subheader(
+            "Create your LeadPilot account"
+        )
+
+        st.caption(
+            "Start with LeadPilot Free — no payment required."
+        )
+
+        try:
+
+            (
+                registration_email,
+                registration_username,
+                registration_name,
+            ) = authenticator.register_user(
+                location="main",
+                captcha=False,
+                clear_on_submit=True,
+                key="leadpilot_registration",
+            )
+
+            if registration_email:
+
+                credentials["usernames"][registration_username]["plan"] = "Free"
+
+                save_credentials(credentials)
+
+                st.success(
+                    "🎉 Account created successfully!"
+                )
+
+                st.info(
+                    "🆓 Your account starts on the LeadPilot Free plan."
+                )
+
+                st.info(
+                    "Please go to the Login tab and sign in "
+                    "with the username and password you just created."
+                )
+
+        except Exception as e:
+
+            st.error(
+                f"Registration error: {e}"
+            )
+
+# ============================================================
+# PASSWORD RESET PAGE
+# ============================================================
+
+reset_token = st.query_params.get("reset_token")
+reset_username = st.query_params.get("username")
+
+if reset_token and reset_username:
+
+    from password_reset import (
+        verify_reset_token,
+        clear_reset_token,
+        load_credentials,
+        save_credentials,
+    )
+
+    if verify_reset_token(
+        reset_username,
+        reset_token,
+    ):
+
+        st.title("🔐 Reset Your LeadPilot Password")
+
+        st.info(
+            "Create a new password for your account."
+        )
+
+        new_password = st.text_input(
+            "New Password",
+            type="password",
+            key="new_password",
+        )
+
+        confirm_password = st.text_input(
+            "Confirm New Password",
+            type="password",
+            key="confirm_new_password",
+        )
+
+        if st.button(
+            "🔒 Set New Password",
+            key="set_new_password",
+        ):
+
+            if not new_password:
+
+                st.warning(
+                    "Please enter a new password."
+                )
+
+            elif len(new_password) < 8:
+
+                st.error(
+                    "❌ Password must contain at least "
+                    "8 characters."
+                )
+
+            elif new_password != confirm_password:
+
+                st.error(
+                    "❌ Passwords do not match."
+                )
+
+            else:
+
+                credentials = load_credentials()
+
+                credentials["usernames"][
+                    reset_username
+                ]["password"] = stauth.Hasher.hash(
+                    new_password
+                )
+
+                clear_reset_token(
+                    reset_username
+                )
+
+                save_credentials(
+                    credentials
+                )
+
+                st.success(
+                    "✅ Password changed successfully!"
+                )
+
+                st.info(
+                    "You can now return to the Login page "
+                    "and sign in with your new password."
+                )
+
+                if st.button(
+                    "➡️ Go to Login",
+                    key="go_to_login",
+                ):
+
+                    st.query_params.clear()
+
+                    st.rerun()
+
+    else:
+
+        st.error(
+            "❌ This password reset link is invalid "
+            "or has expired."
+        )
+
     st.stop()
 
+
+# ============================================================
+# AUTHENTICATION STATUS
+# ============================================================
+
+authentication_status = st.session_state.get(
+    "authentication_status"
+)
+
+name = st.session_state.get("name")
+username = st.session_state.get("username")
+
+
+if authentication_status is False:
+
+    st.error(
+        "❌ Username/password is incorrect."
+    )
+
+    st.stop()
+
+
+if authentication_status is None:
+
+    st.stop()
+
+
 if authentication_status:
-    authenticator.logout("Logout", "sidebar")
+
+    authenticator.logout(
+        "Logout",
+        "sidebar",
+    )
+
 
 
 # ============================================================
@@ -493,17 +939,115 @@ INTELLIGENCE_COLUMNS = [
 
 
 def save_data(dataframe):
-    """Save the current lead database safely."""
+    """Save the current user's lead database safely."""
     DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
     dataframe.to_csv(DATA_PATH, index=False)
 
+def razorpay_checkout(amount, receipt_id):
+    try:
+        order = create_order(amount, receipt_id)
+
+        checkout_html = f"""
+        <html>
+        <head>
+            <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+        </head>
+
+        <body>
+            <button
+                id="rzp-button"
+                style="
+                    background:#2563eb;
+                    color:white;
+                    border:none;
+                    padding:16px 32px;
+                    border-radius:8px;
+                    font-size:18px;
+                    cursor:pointer;
+                "
+            >
+                💳 Pay ₹{amount}
+            </button>
+
+            <script>
+                var options = {{
+                    "key": "{RAZORPAY_KEY_ID}",
+                    "amount": "{order['amount']}",
+                    "currency": "INR",
+                    "name": "LeadPilot",
+                    "description": "LeadPilot Test Payment",
+                    "order_id": "{order['id']}",
+
+                    "handler": function(response) {{
+                        window.parent.postMessage({{
+                            type: "razorpay_success",
+                            payment_id: response.razorpay_payment_id,
+                            order_id: response.razorpay_order_id,
+                            signature: response.razorpay_signature
+                        }}, "*");
+                    }},
+
+                    "theme": {{
+                        "color": "#2563eb"
+                    }}
+                }};
+
+                var rzp = new Razorpay(options);
+
+                document.getElementById("rzp-button").onclick = function(e) {{
+                    rzp.open();
+                    e.preventDefault();
+                }};
+            </script>
+        </body>
+        </html>
+        """
+
+        components.html(checkout_html, height=180)
+
+    except Exception as e:
+        st.error(f"Unable to create payment: {e}")
 
 def load_data():
-    """Load leads.csv and guarantee the expected columns exist."""
+    """Load the current user's lead database."""
+
     if not DATA_PATH.exists():
-        dataframe = pd.DataFrame(columns=REQUIRED_COLUMNS)
+
+        dataframe = pd.DataFrame(
+            columns=REQUIRED_COLUMNS
+        )
+
         save_data(dataframe)
+
         return dataframe
+
+    try:
+
+        dataframe = pd.read_csv(DATA_PATH)
+
+    except Exception as exc:
+
+        st.error(
+            f"❌ Could not read {DATA_PATH}: {exc}"
+        )
+
+        st.stop()
+
+    for column in REQUIRED_COLUMNS:
+
+        if column not in dataframe.columns:
+
+            dataframe[column] = ""
+
+    for column in REQUIRED_COLUMNS:
+
+        dataframe[column] = (
+            dataframe[column]
+            .fillna("")
+            .astype(str)
+        )
+
+    return dataframe
 
     try:
         dataframe = pd.read_csv(DATA_PATH)
@@ -780,13 +1324,39 @@ def get_selected_row(dataframe, selected_name):
 
 
 # ============================================================
+# USER-SPECIFIC LEAD DATABASE
+# ============================================================
+
+if username:
+
+    safe_username = "".join(
+        character
+        for character in username
+        if character.isalnum() or character in ("_", "-")
+    )
+
+    DATA_PATH = Path(
+        f"data/leads_{safe_username}.csv"
+    )
+
+else:
+
+    DATA_PATH = Path(
+        "data/leads_guest.csv"
+    )
+
+DATA_PATH.parent.mkdir(
+    parents=True,
+    exist_ok=True)
+
+
+# ============================================================
 # LOAD + INTELLIGENCE
 # ============================================================
 
 df = load_data()
 df = calculate_intelligence(df)
 df = add_follow_up_intelligence(df)
-
 
 # ============================================================
 # SIDEBAR
@@ -804,7 +1374,8 @@ page = st.sidebar.radio(
         "📅 Follow-Ups",
         "📈 Analytics",
         "📥 Import Leads",
-         "💳 Plans",
+        "💳 Plans",
+        "📄 Legal",
         "⚙️ Settings",
     ],
 )
@@ -3214,6 +3785,32 @@ elif page == "📥 Import Leads":
                 f"❌ Import failed: {exc}"
             )
 
+elif page == "📄 Legal":
+
+    st.title("📄 Legal & Policies")
+
+    legal_page = st.selectbox(
+        "Select a policy",
+        [
+            "🔒 Privacy Policy",
+            "📜 Terms & Conditions",
+            "↩️ Cancellation & Refund Policy",
+            "📞 Contact Us",
+        ],
+    )
+
+    if legal_page == "🔒 Privacy Policy":
+        show_privacy_policy()
+
+    elif legal_page == "📜 Terms & Conditions":
+        show_terms()
+
+    elif legal_page == "↩️ Cancellation & Refund Policy":
+        show_refund_policy()
+
+    elif legal_page == "📞 Contact Us":
+        show_contact()            
+
 
 # ============================================================
 # SETTINGS
@@ -3407,6 +4004,8 @@ elif page == "💳 Plans":
                 "✓ Your current plan"
             )
 
+        
+
         else:
 
             if st.button(
@@ -3485,3 +4084,72 @@ elif page == "💳 Plans":
             "*WhatsApp automation availability depends on the integration."
         )
 
+st.divider()
+
+st.header("💳 Choose Your LeadPilot Plan")
+
+st.write("Start free and upgrade whenever you need more power.")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.subheader("🆓 LeadPilot Free")
+    st.header("₹0 / month")
+
+    st.write("Perfect for getting started.")
+    st.write("✅ Up to 20 leads")
+    st.write("✅ Basic lead scoring")
+    st.write("✅ Basic follow-ups")
+    st.write("✅ Basic analytics")
+    st.write("✅ Search & filtering")
+    st.write("✅ Lead management")
+    st.write("✅ Basic AI recommendations")
+
+    st.success("✓ Your current plan")
+
+with col2:
+    st.subheader("🚀 LeadPilot Pro")
+    st.header("₹299 / month")
+    st.write("₹1,999 / year")
+
+    st.write("For entrepreneurs who want to convert more leads.")
+    st.write("✅ Unlimited leads")
+    st.write("✅ Advanced lead scoring")
+    st.write("✅ Full AI lead intelligence")
+    st.write("✅ Smart Follow-Ups")
+    st.write("✅ Advanced analytics")
+    st.write("✅ AI Action Plans")
+    st.write("✅ Advanced lead prioritization")
+    st.write("✅ Full Action Center")
+    st.write("✅ WhatsApp tools")
+    st.write("✅ Future Pro features")
+
+    if st.button("💬 Contact Us on WhatsApp", key="pro_monthly"):
+       st.markdown(
+        '<meta http-equiv="refresh" content="0; url=https://wa.me/918291446641?text=Hi%2C%20I%20want%20to%20purchase%20LeadPilot%20Pro%20Monthly%20for%20%E2%82%B9299." />',
+        unsafe_allow_html=True,
+    )
+
+with col3:
+    st.subheader("💎 Premium Pro")
+    st.header("₹499 / month")
+    st.write("₹3,999 / year")
+
+    st.write("For serious entrepreneurs who want maximum growth.")
+    st.write("✅ Unlimited leads")
+    st.write("✅ Everything in Pro")
+    st.write("✅ Advanced AI intelligence")
+    st.write("✅ Premium analytics")
+    st.write("✅ Advanced automation")
+    st.write("✅ Priority recommendations")
+    st.write("✅ Advanced Action Plans")
+    st.write("✅ Premium lead intelligence")
+    st.write("✅ WhatsApp automation*")
+    st.write("✅ Premium features")
+    st.write("✅ Priority feature access")
+
+    if st.button("💬 Contact Us on WhatsApp", key="premium_monthly"):
+       st.markdown(
+        '<meta http-equiv="refresh" content="0; url=https://wa.me/918291446641?text=Hi%2C%20I%20want%20to%20purchase%20LeadPilot%20Premium%20Pro%20Monthly%20for%20%E2%82%B9499." />',
+        unsafe_allow_html=True,
+    )
