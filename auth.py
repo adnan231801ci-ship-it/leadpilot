@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 load_dotenv()
 
 
-ACCOUNTS_PATH = Path(__file__).resolve().parent.parent / "accounts.yaml"
+ACCOUNTS_PATH = Path(__file__).resolve().parent / "accounts.yaml"
 
 
 def load_credentials():

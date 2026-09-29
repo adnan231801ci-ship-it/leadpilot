@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit_authenticator as stauth
 import pandas as pd
+from admin.admin_panel import show_admin_panel
 import requests
 from urllib.parse import quote
 from pathlib import Path
@@ -1287,18 +1288,23 @@ st.sidebar.title("🚀 LeadPilot")
 st.sidebar.caption("AI Lead Conversion Platform")
 st.sidebar.divider()
 
+pages = [
+    "📊 Dashboard",
+    "👥 Leads",
+    "📅 Follow-Ups",
+    "📈 Analytics",
+    "📥 Import Leads",
+    "💳 Plans",
+    "📄 Legal",
+    "⚙️ Settings",
+]
+
+if username == "admin":
+    pages.append("🛡️ Admin Panel")
+
 page = st.sidebar.radio(
     "Navigation",
-    [
-        "📊 Dashboard",
-        "👥 Leads",
-        "📅 Follow-Ups",
-        "📈 Analytics",
-        "📥 Import Leads",
-        "💳 Plans",
-        "📄 Legal",
-        "⚙️ Settings",
-    ],
+    pages,
 )
 
 st.sidebar.divider()
@@ -3799,6 +3805,10 @@ elif page == "⚙️ Settings":
         "Do not delete your original leads.csv unless "
         "you already have a backup."
     )
+
+elif page == "🛡️ Admin Panel":
+
+    show_admin_panel(username)
 
     # ============================================================
 # PLANS & SUBSCRIPTION
