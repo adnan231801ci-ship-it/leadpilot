@@ -15,11 +15,6 @@ from src.legal_pages import (
 from src.local_ai import generate_lead_recommendation
 
 import streamlit.components.v1 as components
-from src.razorpay_payment import (
-    create_order,
-    verify_payment,
-    RAZORPAY_KEY_ID
-)
 
 # ============================================================
 # SUBSCRIPTION CONFIG
@@ -943,70 +938,6 @@ def save_data(dataframe):
     DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
     dataframe.to_csv(DATA_PATH, index=False)
 
-def razorpay_checkout(amount, receipt_id):
-    try:
-        order = create_order(amount, receipt_id)
-
-        checkout_html = f"""
-        <html>
-        <head>
-            <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-        </head>
-
-        <body>
-            <button
-                id="rzp-button"
-                style="
-                    background:#2563eb;
-                    color:white;
-                    border:none;
-                    padding:16px 32px;
-                    border-radius:8px;
-                    font-size:18px;
-                    cursor:pointer;
-                "
-            >
-                💳 Pay ₹{amount}
-            </button>
-
-            <script>
-                var options = {{
-                    "key": "{RAZORPAY_KEY_ID}",
-                    "amount": "{order['amount']}",
-                    "currency": "INR",
-                    "name": "LeadPilot",
-                    "description": "LeadPilot Test Payment",
-                    "order_id": "{order['id']}",
-
-                    "handler": function(response) {{
-                        window.parent.postMessage({{
-                            type: "razorpay_success",
-                            payment_id: response.razorpay_payment_id,
-                            order_id: response.razorpay_order_id,
-                            signature: response.razorpay_signature
-                        }}, "*");
-                    }},
-
-                    "theme": {{
-                        "color": "#2563eb"
-                    }}
-                }};
-
-                var rzp = new Razorpay(options);
-
-                document.getElementById("rzp-button").onclick = function(e) {{
-                    rzp.open();
-                    e.preventDefault();
-                }};
-            </script>
-        </body>
-        </html>
-        """
-
-        components.html(checkout_html, height=180)
-
-    except Exception as e:
-        st.error(f"Unable to create payment: {e}")
 
 def load_data():
     """Load the current user's lead database."""
