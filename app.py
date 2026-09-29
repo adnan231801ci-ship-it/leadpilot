@@ -744,7 +744,7 @@ reset_token = st.query_params.get("reset_token")
 reset_username = st.query_params.get("username")
 
 if reset_token and reset_username:
-    
+
 
     if verify_reset_token(
         reset_username,
@@ -4046,10 +4046,10 @@ with col2:
     st.write("✅ Future Pro features")
 
     if st.button("💬 Contact Us on WhatsApp", key="pro_monthly"):
-       st.markdown(
-        '<meta http-equiv="refresh" content="0; url=https://wa.me/918291446641?text=Hi%2C%20I%20want%20to%20purchase%20LeadPilot%20Pro%20Monthly%20for%20%E2%82%B9299." />',
-        unsafe_allow_html=True,
-    )
+       st.link_button(
+    "💬 Contact Us on WhatsApp",
+    "https://wa.me/918291446641?text=Hi%2C%20I%20want%20to%20purchase%20LeadPilot%20Pro%20Monthly%20for%20₹299"
+)
 
 with col3:
     st.subheader("💎 Premium Pro")
@@ -4070,7 +4070,7 @@ with col3:
     st.write("✅ Priority feature access")
 
     if st.button("💬 Contact Us on WhatsApp", key="premium_monthly"):
-       st.markdown(
-        '<meta http-equiv="refresh" content="0; url=https://wa.me/918291446641?text=Hi%2C%20I%20want%20to%20purchase%20LeadPilot%20Premium%20Pro%20Monthly%20for%20%E2%82%B9499." />',
-        unsafe_allow_html=True,
-    )
+       st.link_button(
+    "💬 Contact Us on WhatsApp",
+    "https://wa.me/918291446641?text=Hi%2C%20I%20want%20to%20purchase%20LeadPilot%20Premium%20Pro%20Monthly%20for%20₹499"
+)
