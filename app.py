@@ -44,10 +44,6 @@ from src.scoring import (
 
 from auth import get_authenticator, save_credentials
 
-from password_reset import (
-    create_reset_token,
-    send_reset_email,
-)
 
 # ============================================================
 # PAGE CONFIG
@@ -748,13 +744,7 @@ reset_token = st.query_params.get("reset_token")
 reset_username = st.query_params.get("username")
 
 if reset_token and reset_username:
-
-    from password_reset import (
-        verify_reset_token,
-        clear_reset_token,
-        load_credentials,
-        save_credentials,
-    )
+    
 
     if verify_reset_token(
         reset_username,
